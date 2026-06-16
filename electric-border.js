@@ -184,7 +184,26 @@ class ElectricBorder {
       this._rRect(ctx, ix, iy, iw, ih, r); ctx.stroke();
     }
 
-    ctx.filter      = 'none';
+    // ── Corner glint: reflexo diagonal nos cantos (inspirado no CodePen KwdoyEN) ──
+    {
+      const mx = pw * 0.04, my = ph * 0.04;
+      const grad = ctx.createLinearGradient(px-mx, py-my, px+pw+mx, py+ph+my);
+      grad.addColorStop(0.00, 'rgba(255,255,255,0.22)');
+      grad.addColorStop(0.28, 'rgba(255,255,255,0.00)');
+      grad.addColorStop(0.72, 'rgba(255,255,255,0.00)');
+      grad.addColorStop(1.00, 'rgba(255,255,255,0.18)');
+      ctx.filter                   = 'blur(10px)';
+      ctx.globalCompositeOperation = 'overlay';
+      ctx.fillStyle                = grad;
+      this._rRect(ctx, px-mx, py-my, pw+mx*2, ph+my*2, p.outerR + 3);
+      ctx.fill();
+      ctx.globalAlpha = 0.5;
+      this._rRect(ctx, px-mx, py-my, pw+mx*2, ph+my*2, p.outerR + 3);
+      ctx.fill();
+    }
+
+    ctx.filter                   = 'none';
+    ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = 1;
     ctx.restore();
   }
