@@ -154,26 +154,6 @@ class ElectricBorder {
       this._rRect(ctx, px + 0.5, py + 0.5, pw - 1, ph - 1, p.outerR);
       ctx.stroke();
       ctx.shadowBlur  = 0;
-
-      // ── Arco giratorio: conic-gradient "comet" correndo pela borda ──────────
-      if (p.spinSpd !== 0 && ctx.createConicGradient) {
-        const cx = px + pw * 0.5, cy = py + ph * 0.5;
-        const cg = ctx.createConicGradient(t * p.spinSpd, cx, cy);
-        const h1 = p.hue, h2 = (p.hue + 52) % 360;
-        cg.addColorStop(0.00, `hsla(${h1},90%,65%,0)`);
-        cg.addColorStop(0.06, `hsla(${h1},92%,72%,0.90)`);
-        cg.addColorStop(0.20, `hsla(${h2},92%,72%,0.85)`);
-        cg.addColorStop(0.40, `hsla(${h2},80%,60%,0.30)`);
-        cg.addColorStop(0.52, `hsla(${h1},80%,55%,0)`);
-        cg.addColorStop(1.00, `hsla(${h1},90%,65%,0)`);
-        ctx.strokeStyle = cg;
-        ctx.lineWidth   = 2.5;
-        ctx.shadowColor = `hsla(${h1},90%,70%,0.9)`;
-        ctx.shadowBlur  = 12;
-        this._rRect(ctx, px + 0.5, py + 0.5, pw - 1, ph - 1, p.outerR);
-        ctx.stroke();
-        ctx.shadowBlur  = 0;
-      }
     }
 
     // ── Camada 1: aura suave (sem filtro SVG, apenas shadowBlur) ─────────────
@@ -206,6 +186,28 @@ class ElectricBorder {
       ctx.strokeStyle = `hsla(${h+15},30%,96%,${(0.90*I).toFixed(3)})`;
       ctx.lineWidth   = p.coreW;
       this._rRect(ctx, ix, iy, iw, ih, r); ctx.stroke();
+    }
+
+    // ── Arco giratorio: conic-gradient "comet" — por cima de toda a borda ──────
+    if (p.spinSpd !== 0 && ctx.createConicGradient) {
+      ctx.filter = 'none';
+      const cx = px + pw * 0.5, cy = py + ph * 0.5;
+      const cg = ctx.createConicGradient(t * p.spinSpd, cx, cy);
+      const h1 = p.hue, h2 = (p.hue + 52) % 360;
+      cg.addColorStop(0.00, `rgba(255,255,255,0)`);
+      cg.addColorStop(0.05, `hsla(${h2},100%,82%,0.55)`);
+      cg.addColorStop(0.14, `rgba(255,255,255,0.95)`);
+      cg.addColorStop(0.26, `hsla(${h1},100%,72%,0.90)`);
+      cg.addColorStop(0.48, `hsla(${h1},90%,55%,0.20)`);
+      cg.addColorStop(0.58, `rgba(255,255,255,0)`);
+      cg.addColorStop(1.00, `rgba(255,255,255,0)`);
+      ctx.strokeStyle = cg;
+      ctx.lineWidth   = 3.5;
+      ctx.shadowColor = `rgba(255,255,255,0.9)`;
+      ctx.shadowBlur  = 14;
+      this._rRect(ctx, px + 0.5, py + 0.5, pw - 1, ph - 1, p.outerR);
+      ctx.stroke();
+      ctx.shadowBlur  = 0;
     }
 
     // ── Corner glint: reflexo diagonal nos cantos (inspirado no CodePen KwdoyEN) ──
