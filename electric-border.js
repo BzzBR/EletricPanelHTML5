@@ -57,6 +57,8 @@
  *   coreW      {number}  0.4    lineWidth do nucleo branco (Camada 4).
  *   pulseSpd   {number}  3.8    Velocidade do pulso de intensidade (rad/s).
  *                               0 = sem pulso (intensidade constante).
+ *   spinSpd    {number}  0      Velocidade do arco conic-gradient giratorio (rad/s).
+ *                               0 = desativado. Ex: 1.4 = volta completa em ~4.5s.
  *
  * ── Arquitetura das camadas ───────────────────────────────────────────────────
  *
@@ -93,6 +95,7 @@ class ElectricBorder {
     arcW:       1.0,    // lineWidth do arco principal (Camada 3)
     coreW:      0.4,    // lineWidth do nucleo brilhante (Camada 4)
     pulseSpd:   3.8,    // velocidade do pulso de intensidade (rad/s)
+    spinSpd:    0,      // velocidade do arco giratorio conic-gradient (rad/s). 0 = desativado
   };
 
   /**
@@ -150,6 +153,27 @@ class ElectricBorder {
       ctx.lineWidth   = 1;
       this._rRect(ctx, px + 0.5, py + 0.5, pw - 1, ph - 1, p.outerR);
       ctx.stroke();
+      ctx.shadowBlur  = 0;
+
+      // ── Arco giratorio: conic-gradient "comet" correndo pela borda ──────────
+      if (p.spinSpd !== 0 && ctx.createConicGradient) {
+        const cx = px + pw * 0.5, cy = py + ph * 0.5;
+        const cg = ctx.createConicGradient(t * p.spinSpd, cx, cy);
+        const h1 = p.hue, h2 = (p.hue + 52) % 360;
+        cg.addColorStop(0.00, `hsla(${h1},90%,65%,0)`);
+        cg.addColorStop(0.06, `hsla(${h1},92%,72%,0.90)`);
+        cg.addColorStop(0.20, `hsla(${h2},92%,72%,0.85)`);
+        cg.addColorStop(0.40, `hsla(${h2},80%,60%,0.30)`);
+        cg.addColorStop(0.52, `hsla(${h1},80%,55%,0)`);
+        cg.addColorStop(1.00, `hsla(${h1},90%,65%,0)`);
+        ctx.strokeStyle = cg;
+        ctx.lineWidth   = 2.5;
+        ctx.shadowColor = `hsla(${h1},90%,70%,0.9)`;
+        ctx.shadowBlur  = 12;
+        this._rRect(ctx, px + 0.5, py + 0.5, pw - 1, ph - 1, p.outerR);
+        ctx.stroke();
+        ctx.shadowBlur  = 0;
+      }
     }
 
     // ── Camada 1: aura suave (sem filtro SVG, apenas shadowBlur) ─────────────
