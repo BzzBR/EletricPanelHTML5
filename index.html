@@ -433,7 +433,9 @@ const SLIDERS = [
   { key: 'arcW',     label: 'Arc W',    min: 0,     max: 3,    step: 0.05, fmt: v => (+v).toFixed(2) },
   { key: 'coreW',    label: 'Core W',   min: 0,     max: 1.5,  step: 0.05, fmt: v => (+v).toFixed(2) },
   { key: 'pulseSpd', label: 'Pulse',    min: 0,     max: 10,   step: 0.1,  fmt: v => (+v).toFixed(1) },
-  { key: 'spinSpd',  label: 'Spin',     min: 0,     max: 4,    step: 0.1,  fmt: v => (+v).toFixed(1) },
+  { key: 'spinSpd',  label: 'Spin Spd', min: 0,     max: 4,    step: 0.1,  fmt: v => (+v).toFixed(1) },
+  { key: 'spinHue',  label: 'Spin Hue', min: 0,     max: 360,  step: 1,    fmt: v => v + '°'         },
+  { key: 'spinTail', label: 'Spin Tail',min: 0.05,  max: 0.95, step: 0.05, fmt: v => (+v).toFixed(2) },
 ];
 
 // ── Copy / paste ──────────────────────────────────────────────────────────────
@@ -444,7 +446,8 @@ function updateCopyBox() {
     `new ElectricBorder({\n` +
     `  hue: ${p.hue}, outerHue: ${oh}, freq: ${(+p.freq).toFixed(3)}, octaves: ${p.octaves}, scale: ${p.scale},\n` +
     `  durDy: ${p.durDy}, durDx: ${p.durDx}, auraBlur: ${p.auraBlur},\n` +
-    `  auraW: ${(+p.auraW).toFixed(2)}, coronaW: ${(+p.coronaW).toFixed(2)}, arcW: ${(+p.arcW).toFixed(2)}, coreW: ${(+p.coreW).toFixed(2)}, pulseSpd: ${(+p.pulseSpd).toFixed(1)}, spinSpd: ${(+p.spinSpd).toFixed(1)},\n` +
+    `  auraW: ${(+p.auraW).toFixed(2)}, coronaW: ${(+p.coronaW).toFixed(2)}, arcW: ${(+p.arcW).toFixed(2)}, coreW: ${(+p.coreW).toFixed(2)}, pulseSpd: ${(+p.pulseSpd).toFixed(1)},\n` +
+    `  spinSpd: ${(+p.spinSpd).toFixed(1)}, spinHue: ${p.spinHue != null ? p.spinHue : 'null'}, spinTail: ${(+p.spinTail).toFixed(2)},\n` +
     `})`;
 }
 function copyParams() {
@@ -474,8 +477,8 @@ SLIDERS.forEach(def => {
   const lbl = document.createElement('span'); lbl.className = 'sl-lbl'; lbl.textContent = def.label;
   const inp = document.createElement('input');
   inp.type = 'range'; inp.min = def.min; inp.max = def.max; inp.step = def.step;
-  inp.value = def.key === 'outerHue'
-    ? (eb.p.outerHue != null ? eb.p.outerHue : eb.p.hue)
+  inp.value = (def.key === 'outerHue' || def.key === 'spinHue')
+    ? (eb.p[def.key] != null ? eb.p[def.key] : eb.p.hue)
     : eb.p[def.key];
   const val = document.createElement('span'); val.className = 'sl-val';
   val.textContent = def.fmt(+inp.value);
@@ -496,8 +499,8 @@ SLIDERS.forEach(def => {
 function syncSliders() {
   SLIDERS.forEach(def => {
     const el = sliderEls[def.key];
-    const v = def.key === 'outerHue'
-      ? (eb.p.outerHue != null ? eb.p.outerHue : eb.p.hue)
+    const v = (def.key === 'outerHue' || def.key === 'spinHue')
+      ? (eb.p[def.key] != null ? eb.p[def.key] : eb.p.hue)
       : eb.p[def.key];
     el.input.value = v;
     el.valEl.textContent = def.fmt(+v);
