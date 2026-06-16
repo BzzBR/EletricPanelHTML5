@@ -351,6 +351,18 @@
       <label class="sw"><input type="checkbox" id="t-el" checked><span class="sw-tk"></span></label>
       <span class="ti-lbl">Electric</span>
     </div>
+    <div class="ti">
+      <label class="sw"><input type="checkbox" id="t-sp" checked><span class="sw-tk"></span></label>
+      <span class="ti-lbl">Spin ⚡</span>
+    </div>
+    <div class="ti">
+      <label class="sw"><input type="checkbox" id="t-sf" checked><span class="sw-tk"></span></label>
+      <span class="ti-lbl">Spin Frame</span>
+    </div>
+    <div class="ti">
+      <label class="sw"><input type="checkbox" id="t-pu" checked><span class="sw-tk"></span></label>
+      <span class="ti-lbl">Pulse</span>
+    </div>
   </div>
   <div class="vsep"></div>
   <button class="adv-toggle-btn" id="adv-toggle-btn" onclick="toggleAdv()">⚙ ADV</button>
@@ -410,13 +422,28 @@ const COLORS = [
 ];
 
 // ── ElectricBorder ────────────────────────────────────────────────────────────
-const eb = new ElectricBorder({ ...PRESETS.padrao, hue: 270, spinSpd: 1.4 });
+const eb = new ElectricBorder({ ...PRESETS.padrao, hue: 270, spinSpd: 1.4, spinFrmSpd: 1.0, spinFrmHue: null, spinFrmTail: 0.40 });
 
 // ── Layer toggles ─────────────────────────────────────────────────────────────
 const T = { bg: true, cn: true, ou: true, au: true, el: true };
 ['bg', 'cn', 'ou', 'au', 'el'].forEach(k =>
   document.getElementById('t-' + k).addEventListener('change', e => T[k] = e.target.checked)
 );
+
+// ── ON/OFF toggles para Spin ⚡, Spin Frame, Pulse ────────────────────────────────
+function addParamToggle(id, paramKey) {
+  const el = document.getElementById('t-' + id);
+  let savedVal = eb.p[paramKey] || 1.4;
+  el.checked = eb.p[paramKey] !== 0;
+  el.addEventListener('change', e => {
+    if (e.target.checked) { eb.setParams({ [paramKey]: savedVal }); }
+    else { savedVal = eb.p[paramKey] || savedVal; eb.setParams({ [paramKey]: 0 }); }
+    syncSliders();
+  });
+}
+addParamToggle('sp', 'spinSpd');
+addParamToggle('sf', 'spinFrmSpd');
+addParamToggle('pu', 'pulseSpd');
 
 // ── Slider definitions ────────────────────────────────────────────────────────
 const SLIDERS = [
@@ -433,9 +460,12 @@ const SLIDERS = [
   { key: 'arcW',     label: 'Arc W',    min: 0,     max: 3,    step: 0.05, fmt: v => (+v).toFixed(2) },
   { key: 'coreW',    label: 'Core W',   min: 0,     max: 1.5,  step: 0.05, fmt: v => (+v).toFixed(2) },
   { key: 'pulseSpd', label: 'Pulse',    min: 0,     max: 10,   step: 0.1,  fmt: v => (+v).toFixed(1) },
-  { key: 'spinSpd',  label: 'Spin Spd', min: 0,     max: 4,    step: 0.1,  fmt: v => (+v).toFixed(1) },
-  { key: 'spinHue',  label: 'Spin Hue', min: 0,     max: 360,  step: 1,    fmt: v => v + '°'         },
-  { key: 'spinTail', label: 'Spin Tail',min: 0.05,  max: 0.95, step: 0.05, fmt: v => (+v).toFixed(2) },
+  { key: 'spinSpd',    label: 'Spin⚡ Spd', min: 0,    max: 4,    step: 0.1,  fmt: v => (+v).toFixed(1) },
+  { key: 'spinHue',    label: 'Spin⚡ Hue', min: 0,    max: 360,  step: 1,    fmt: v => v + '°'         },
+  { key: 'spinTail',   label: 'Spin⚡ Tail',min: 0.05, max: 0.95, step: 0.05, fmt: v => (+v).toFixed(2) },
+  { key: 'spinFrmSpd', label: 'FrmSpin Spd', min: 0,   max: 4,    step: 0.1,  fmt: v => (+v).toFixed(1) },
+  { key: 'spinFrmHue', label: 'FrmSpin Hue', min: 0,   max: 360,  step: 1,    fmt: v => v + '°'         },
+  { key: 'spinFrmTail',label: 'FrmSpin Tail',min: 0.05,max: 0.95, step: 0.05, fmt: v => (+v).toFixed(2) },
 ];
 
 // ── Copy / paste ──────────────────────────────────────────────────────────────
@@ -448,6 +478,7 @@ function updateCopyBox() {
     `  durDy: ${p.durDy}, durDx: ${p.durDx}, auraBlur: ${p.auraBlur},\n` +
     `  auraW: ${(+p.auraW).toFixed(2)}, coronaW: ${(+p.coronaW).toFixed(2)}, arcW: ${(+p.arcW).toFixed(2)}, coreW: ${(+p.coreW).toFixed(2)}, pulseSpd: ${(+p.pulseSpd).toFixed(1)},\n` +
     `  spinSpd: ${(+p.spinSpd).toFixed(1)}, spinHue: ${p.spinHue != null ? p.spinHue : 'null'}, spinTail: ${(+p.spinTail).toFixed(2)},\n` +
+    `  spinFrmSpd: ${(+p.spinFrmSpd).toFixed(1)}, spinFrmHue: ${p.spinFrmHue != null ? p.spinFrmHue : 'null'}, spinFrmTail: ${(+p.spinFrmTail).toFixed(2)},\n` +
     `})`;
 }
 function copyParams() {
@@ -477,7 +508,7 @@ SLIDERS.forEach(def => {
   const lbl = document.createElement('span'); lbl.className = 'sl-lbl'; lbl.textContent = def.label;
   const inp = document.createElement('input');
   inp.type = 'range'; inp.min = def.min; inp.max = def.max; inp.step = def.step;
-  inp.value = (def.key === 'outerHue' || def.key === 'spinHue')
+  inp.value = (def.key === 'outerHue' || def.key === 'spinHue' || def.key === 'spinFrmHue')
     ? (eb.p[def.key] != null ? eb.p[def.key] : eb.p.hue)
     : eb.p[def.key];
   const val = document.createElement('span'); val.className = 'sl-val';
@@ -499,7 +530,7 @@ SLIDERS.forEach(def => {
 function syncSliders() {
   SLIDERS.forEach(def => {
     const el = sliderEls[def.key];
-    const v = (def.key === 'outerHue' || def.key === 'spinHue')
+    const v = (def.key === 'outerHue' || def.key === 'spinHue' || def.key === 'spinFrmHue')
       ? (eb.p[def.key] != null ? eb.p[def.key] : eb.p.hue)
       : eb.p[def.key];
     el.input.value = v;

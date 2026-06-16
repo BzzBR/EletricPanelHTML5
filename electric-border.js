@@ -94,10 +94,13 @@ class ElectricBorder {
     coronaW:    3.5,    // lineWidth da corona (Camada 2, com filtro)
     arcW:       1.0,    // lineWidth do arco principal (Camada 3)
     coreW:      0.4,    // lineWidth do nucleo brilhante (Camada 4)
-    pulseSpd:   3.8,    // velocidade do pulso de intensidade (rad/s)
-    spinSpd:    0,      // velocidade do arco giratorio conic-gradient (rad/s). 0 = desativado
-    spinHue:    null,   // hue do arco giratorio (null = usa hue principal)
-    spinTail:   0.40,   // comprimento da cauda visivel (fracao 0..1 do perimetro)
+    pulseSpd:    3.8,    // velocidade do pulso de intensidade (rad/s). 0 = sem pulso (I constante = 1)
+    spinSpd:     0,      // vel. arco giratorio ELÉTRICO (rad/s). 0 = off
+    spinHue:     null,   // hue do arco elétrico (null = usa hue principal)
+    spinTail:    0.40,   // cauda do arco elétrico (0..1 do perimetro)
+    spinFrmSpd:  0,      // vel. arco giratorio do FRAME estático (rad/s). 0 = off
+    spinFrmHue:  null,   // hue do arco do frame (null = usa oh)
+    spinFrmTail: 0.40,   // cauda do arco do frame (0..1 do perimetro)
   };
 
   /**
@@ -140,7 +143,7 @@ class ElectricBorder {
 
     const ip = p.innerInset, r = p.innerR;
     const ix = px+ip, iy = py+ip, iw = pw-ip*2, ih = ph-ip*2;
-    const pulse = 0.72 + 0.28 * Math.sin(t * p.pulseSpd);
+    const pulse = p.pulseSpd === 0 ? 1.0 : (0.72 + 0.28 * Math.sin(t * p.pulseSpd));
     const flare = Math.sin(t * 7.1) * Math.sin(t * 11.9) > 0.85 ? 1.55 : 1.0;
     const I = pulse * flare;
 
@@ -156,6 +159,29 @@ class ElectricBorder {
       this._rRect(ctx, px + 0.5, py + 0.5, pw - 1, ph - 1, p.outerR);
       ctx.stroke();
       ctx.shadowBlur  = 0;
+
+      // ── Arco giratorio do frame (spinFrmSpd, sem filtro SVG) ──────────────
+      if (p.spinFrmSpd !== 0 && ctx.createConicGradient) {
+        const cx  = px + pw * 0.5, cy = py + ph * 0.5;
+        const cg  = ctx.createConicGradient(t * p.spinFrmSpd, cx, cy);
+        const fh  = (p.spinFrmHue != null) ? p.spinFrmHue : oh;
+        const fh2 = (fh + 52) % 360;
+        const tl  = Math.max(0.05, Math.min(0.95, p.spinFrmTail));
+        cg.addColorStop(0,                 `hsla(${fh},90%,65%,0)`);
+        cg.addColorStop(tl * 0.10,         `hsla(${fh2},100%,80%,0.50)`);
+        cg.addColorStop(tl * 0.24,         `rgba(255,255,255,0.95)`);
+        cg.addColorStop(tl * 0.44,         `hsla(${fh},100%,72%,0.88)`);
+        cg.addColorStop(tl * 0.78,         `hsla(${fh},90%,55%,0.20)`);
+        cg.addColorStop(Math.min(tl,0.98), `rgba(255,255,255,0)`);
+        cg.addColorStop(1,                 `rgba(255,255,255,0)`);
+        ctx.strokeStyle = cg;
+        ctx.lineWidth   = 3.5;
+        ctx.shadowColor = `rgba(255,255,255,0.9)`;
+        ctx.shadowBlur  = 14;
+        this._rRect(ctx, px + 0.5, py + 0.5, pw - 1, ph - 1, p.outerR);
+        ctx.stroke();
+        ctx.shadowBlur  = 0;
+      }
     }
 
     // ── Camada 1: aura suave (sem filtro SVG, apenas shadowBlur) ─────────────
