@@ -285,6 +285,33 @@
     }
     .adv-toggle-btn:hover { background: rgba(90,25,180,0.45); border-color: rgba(170,80,255,0.45); color: #bb88ff; }
     .adv-toggle-btn.open  { background: rgba(100,22,235,0.5); border-color: rgba(185,80,255,0.65); color: #cc88ff; box-shadow: 0 0 8px rgba(160,50,255,0.28); }
+
+    /* ── Left Panel (sidebar) ──────────────────────────────────────── */
+    #left-panel {
+      position: fixed; left: 16px; top: 50%; transform: translateY(-50%);
+      display: flex; flex-direction: column; gap: 10px;
+      background: rgba(6, 2, 18, 0.93);
+      border: 1px solid rgba(140, 50, 240, 0.2);
+      border-radius: 16px; padding: 14px 12px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 4px 28px rgba(100, 20, 200, 0.22), 0 1px 4px rgba(0,0,0,0.7);
+      user-select: none; z-index: 10;
+      max-height: calc(100vh - 48px); overflow-y: auto;
+    }
+    .lp-sep { width: 100%; height: 1px; background: rgba(140,50,240,0.15); }
+    .lp-sect { display: flex; flex-direction: column; gap: 4px; }
+    .lp-title {
+      font-family: 'Orbitron', sans-serif; font-size: 7px; font-weight: 700;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: rgba(150, 100, 240, 0.38); margin-bottom: 2px;
+    }
+    .lp-sw-row { display: flex; align-items: center; gap: 7px; }
+    .lp-sw-lbl {
+      font-family: 'Orbitron', sans-serif; font-size: 7.5px; font-weight: 700;
+      color: rgba(175, 140, 255, 0.48);
+      text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap;
+    }
+    .swatch-row { display: grid; grid-template-columns: repeat(4, 20px); gap: 4px; }
   </style>
 </head>
 <body>
@@ -304,66 +331,48 @@
   <textarea id="copy-box" readonly spellcheck="false"></textarea>
 </div>
 
-<div id="ctrl-bar">
-
-  <!-- Presets -->
-  <span class="sect-lbl">Preset</span>
-  <div class="preset-group">
+<div id="left-panel">
+  <div class="lp-sect">
+    <span class="lp-title">Preset</span>
     <button class="preset-btn" id="p-suave"   onclick="applyPreset('suave')">Suave</button>
     <button class="preset-btn active" id="p-padrao"  onclick="applyPreset('padrao')">Padrão</button>
     <button class="preset-btn" id="p-intenso" onclick="applyPreset('intenso')">Intenso</button>
   </div>
+  <div class="lp-sep"></div>
+  <div class="lp-sect">
+    <span class="lp-title">Layers</span>
+    <div class="lp-sw-row"><label class="sw"><input type="checkbox" id="t-bg" checked><span class="sw-tk"></span></label><span class="lp-sw-lbl">BG Glow</span></div>
+    <div class="lp-sw-row"><label class="sw"><input type="checkbox" id="t-cn" checked><span class="sw-tk"></span></label><span class="lp-sw-lbl">Corners</span></div>
+    <div class="lp-sw-row"><label class="sw"><input type="checkbox" id="t-ou" checked><span class="sw-tk"></span></label><span class="lp-sw-lbl">Frame</span></div>
+    <div class="lp-sw-row"><label class="sw"><input type="checkbox" id="t-au" checked><span class="sw-tk"></span></label><span class="lp-sw-lbl">Aura</span></div>
+    <div class="lp-sw-row"><label class="sw"><input type="checkbox" id="t-el" checked><span class="sw-tk"></span></label><span class="lp-sw-lbl">Electric</span></div>
+  </div>
+  <div class="lp-sep"></div>
+  <div class="lp-sect">
+    <span class="lp-title">Spin ⚡</span>
+    <div class="lp-sw-row"><label class="sw"><input type="checkbox" id="t-sp" checked><span class="sw-tk"></span></label><span class="lp-sw-lbl">On/Off</span></div>
+    <div class="lp-sw-row"><label class="sw"><input type="checkbox" id="t-flt" checked><span class="sw-tk"></span></label><span class="lp-sw-lbl">Distort</span></div>
+    <div class="swatch-row" id="spin-color-group"></div>
+  </div>
+  <div class="lp-sep"></div>
+  <div class="lp-sect">
+    <span class="lp-title">Spin Frame</span>
+    <div class="lp-sw-row"><label class="sw"><input type="checkbox" id="t-sf" checked><span class="sw-tk"></span></label><span class="lp-sw-lbl">On/Off</span></div>
+    <div class="swatch-row" id="spin-frm-color-group"></div>
+  </div>
+  <div class="lp-sep"></div>
+  <div class="lp-sect">
+    <span class="lp-title">Pulse</span>
+    <div class="lp-sw-row"><label class="sw"><input type="checkbox" id="t-pu" checked><span class="sw-tk"></span></label><span class="lp-sw-lbl">On/Off</span></div>
+  </div>
+</div>
 
-  <div class="vsep"></div>
-
-  <!-- Colors -->
+<div id="ctrl-bar">
   <span class="sect-lbl">Cor</span>
   <div class="color-group" id="color-group"></div>
-
   <div class="vsep"></div>
-
-  <!-- Outer border (frame) color -->
   <span class="sect-lbl">Frame</span>
   <div class="color-group" id="outer-color-group"></div>
-
-  <div class="vsep"></div>
-
-  <!-- Layer toggles -->
-  <span class="sect-lbl">Layers</span>
-  <div class="toggle-group">
-    <div class="ti">
-      <label class="sw"><input type="checkbox" id="t-bg" checked><span class="sw-tk"></span></label>
-      <span class="ti-lbl">BG Glow</span>
-    </div>
-    <div class="ti">
-      <label class="sw"><input type="checkbox" id="t-cn" checked><span class="sw-tk"></span></label>
-      <span class="ti-lbl">Corners</span>
-    </div>
-    <div class="ti">
-      <label class="sw"><input type="checkbox" id="t-ou" checked><span class="sw-tk"></span></label>
-      <span class="ti-lbl">Frame</span>
-    </div>
-    <div class="ti">
-      <label class="sw"><input type="checkbox" id="t-au" checked><span class="sw-tk"></span></label>
-      <span class="ti-lbl">Aura</span>
-    </div>
-    <div class="ti">
-      <label class="sw"><input type="checkbox" id="t-el" checked><span class="sw-tk"></span></label>
-      <span class="ti-lbl">Electric</span>
-    </div>
-    <div class="ti">
-      <label class="sw"><input type="checkbox" id="t-sp" checked><span class="sw-tk"></span></label>
-      <span class="ti-lbl">Spin ⚡</span>
-    </div>
-    <div class="ti">
-      <label class="sw"><input type="checkbox" id="t-sf" checked><span class="sw-tk"></span></label>
-      <span class="ti-lbl">Spin Frame</span>
-    </div>
-    <div class="ti">
-      <label class="sw"><input type="checkbox" id="t-pu" checked><span class="sw-tk"></span></label>
-      <span class="ti-lbl">Pulse</span>
-    </div>
-  </div>
   <div class="vsep"></div>
   <button class="adv-toggle-btn" id="adv-toggle-btn" onclick="toggleAdv()">⚙ ADV</button>
 </div>
@@ -445,6 +454,11 @@ addParamToggle('sp', 'spinSpd');
 addParamToggle('sf', 'spinFrmSpd');
 addParamToggle('pu', 'pulseSpd');
 
+// spinFlt = boolean (distorcao SVG no arco giratorio)
+document.getElementById('t-flt').addEventListener('change', e => {
+  eb.setParams({ spinFlt: e.target.checked });
+});
+
 // ── Slider definitions ────────────────────────────────────────────────────────
 const SLIDERS = [
   { key: 'hue',      label: 'Hue',        min: 0,     max: 360,  step: 1,    fmt: v => v + '°'         },
@@ -479,6 +493,7 @@ function updateCopyBox() {
     `  auraW: ${(+p.auraW).toFixed(2)}, coronaW: ${(+p.coronaW).toFixed(2)}, arcW: ${(+p.arcW).toFixed(2)}, coreW: ${(+p.coreW).toFixed(2)}, pulseSpd: ${(+p.pulseSpd).toFixed(1)},\n` +
     `  spinSpd: ${(+p.spinSpd).toFixed(1)}, spinHue: ${p.spinHue != null ? p.spinHue : 'null'}, spinTail: ${(+p.spinTail).toFixed(2)},\n` +
     `  spinFrmSpd: ${(+p.spinFrmSpd).toFixed(1)}, spinFrmHue: ${p.spinFrmHue != null ? p.spinFrmHue : 'null'}, spinFrmTail: ${(+p.spinFrmTail).toFixed(2)},\n` +
+    `  spinFlt: ${p.spinFlt !== false},\n` +
     `})`;
 }
 function copyParams() {
@@ -584,6 +599,40 @@ COLORS.forEach((col, i) => {
   btn.style.cssText = `background:${col.swatch};--sw-c:${col.swatch}`;
   btn.addEventListener('click', () => applyOuterColor(i));
   ocg.appendChild(btn);
+});
+
+// Build spin ⚡ color swatches
+function applySpinColor(idx) {
+  eb.setParams({ spinHue: COLORS[idx].hue });
+  document.querySelectorAll('.spin-color-btn').forEach((b, i) =>
+    b.classList.toggle('active', i === idx));
+  syncSliders();
+}
+const scg = document.getElementById('spin-color-group');
+COLORS.forEach((col, i) => {
+  const btn = document.createElement('button');
+  btn.className = 'spin-color-btn color-btn';
+  btn.title = col.name;
+  btn.style.cssText = `background:${col.swatch};--sw-c:${col.swatch}`;
+  btn.addEventListener('click', () => applySpinColor(i));
+  scg.appendChild(btn);
+});
+
+// Build spin frame color swatches
+function applySpinFrmColor(idx) {
+  eb.setParams({ spinFrmHue: COLORS[idx].hue });
+  document.querySelectorAll('.spin-frm-color-btn').forEach((b, i) =>
+    b.classList.toggle('active', i === idx));
+  syncSliders();
+}
+const sfcg = document.getElementById('spin-frm-color-group');
+COLORS.forEach((col, i) => {
+  const btn = document.createElement('button');
+  btn.className = 'spin-frm-color-btn color-btn';
+  btn.title = col.name;
+  btn.style.cssText = `background:${col.swatch};--sw-c:${col.swatch}`;
+  btn.addEventListener('click', () => applySpinFrmColor(i));
+  sfcg.appendChild(btn);
 });
 
 // ── Advanced panel toggle ─────────────────────────────────────────────────────

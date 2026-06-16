@@ -101,6 +101,7 @@ class ElectricBorder {
     spinFrmSpd:  0,      // vel. arco giratorio do FRAME estático (rad/s). 0 = off
     spinFrmHue:  null,   // hue do arco do frame (null = usa oh)
     spinFrmTail: 0.40,   // cauda do arco do frame (0..1 do perimetro)
+    spinFlt:     true,   // true = arco eletrico com filtro SVG (distorcao), false = suave
   };
 
   /**
@@ -214,29 +215,31 @@ class ElectricBorder {
       ctx.strokeStyle = `hsla(${h+15},30%,96%,${(0.90*I).toFixed(3)})`;
       ctx.lineWidth   = p.coreW;
       this._rRect(ctx, ix, iy, iw, ih, r); ctx.stroke();
+    }
 
-      // ── Arco giratorio eletrico (spinHue + spinTail, com filtro SVG) ──────────────
-      if (p.spinSpd !== 0 && ctx.createConicGradient) {
-        const cx  = px + pw * 0.5, cy = py + ph * 0.5;
-        const cg  = ctx.createConicGradient(t * p.spinSpd, cx, cy);
-        const sh  = (p.spinHue != null) ? p.spinHue : p.hue;
-        const sh2 = (sh + 52) % 360;
-        const tl  = Math.max(0.05, Math.min(0.95, p.spinTail));
-        cg.addColorStop(0,                 `rgba(255,255,255,0)`);
-        cg.addColorStop(tl * 0.10,         `hsla(${sh2},100%,80%,0.50)`);
-        cg.addColorStop(tl * 0.24,         `rgba(255,255,255,0.95)`);
-        cg.addColorStop(tl * 0.44,         `hsla(${sh},100%,72%,0.90)`);
-        cg.addColorStop(tl * 0.78,         `hsla(${sh},90%,55%,0.20)`);
-        cg.addColorStop(Math.min(tl,0.98), `rgba(255,255,255,0)`);
-        cg.addColorStop(1,                 `rgba(255,255,255,0)`);
-        ctx.strokeStyle = cg;
-        ctx.lineWidth   = p.arcW + p.coronaW + 0.5;
-        ctx.shadowColor = `rgba(255,255,255,0.85)`;
-        ctx.shadowBlur  = p.auraBlur * 0.7;
-        this._rRect(ctx, ix, iy, iw, ih, r);
-        ctx.stroke();
-        ctx.shadowBlur  = 0;
-      }
+    // ── Arco giratorio eletrico (spinHue + spinTail; spinFlt = distorcao SVG) ──────
+    if (showElec && p.spinSpd !== 0 && ctx.createConicGradient) {
+      ctx.filter = p.spinFlt ? `url(#${this._id})` : 'none';
+      const cx  = px + pw * 0.5, cy = py + ph * 0.5;
+      const cg  = ctx.createConicGradient(t * p.spinSpd, cx, cy);
+      const sh  = (p.spinHue != null) ? p.spinHue : p.hue;
+      const sh2 = (sh + 52) % 360;
+      const tl  = Math.max(0.05, Math.min(0.95, p.spinTail));
+      cg.addColorStop(0,                 `rgba(255,255,255,0)`);
+      cg.addColorStop(tl * 0.10,         `hsla(${sh2},100%,80%,0.50)`);
+      cg.addColorStop(tl * 0.24,         `rgba(255,255,255,0.95)`);
+      cg.addColorStop(tl * 0.44,         `hsla(${sh},100%,72%,0.90)`);
+      cg.addColorStop(tl * 0.78,         `hsla(${sh},90%,55%,0.20)`);
+      cg.addColorStop(Math.min(tl,0.98), `rgba(255,255,255,0)`);
+      cg.addColorStop(1,                 `rgba(255,255,255,0)`);
+      ctx.strokeStyle = cg;
+      ctx.lineWidth   = p.arcW + p.coronaW + 0.5;
+      ctx.shadowColor = `rgba(255,255,255,0.85)`;
+      ctx.shadowBlur  = p.auraBlur * 0.7;
+      this._rRect(ctx, ix, iy, iw, ih, r);
+      ctx.stroke();
+      ctx.shadowBlur  = 0;
+      ctx.filter      = 'none';
     }
 
     // ── Corner glint: reflexo diagonal nos cantos (inspirado no CodePen KwdoyEN) ──
