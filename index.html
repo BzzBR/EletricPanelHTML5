@@ -351,7 +351,6 @@
   <div class="lp-sect">
     <span class="lp-title">Spin ⚡</span>
     <div class="lp-sw-row"><label class="sw"><input type="checkbox" id="t-sp" checked><span class="sw-tk"></span></label><span class="lp-sw-lbl">On/Off</span></div>
-    <div class="lp-sw-row"><label class="sw"><input type="checkbox" id="t-flt" checked><span class="sw-tk"></span></label><span class="lp-sw-lbl">Distort</span></div>
     <div class="swatch-row" id="spin-color-group"></div>
   </div>
   <div class="lp-sep"></div>
@@ -363,7 +362,7 @@
   <div class="lp-sep"></div>
   <div class="lp-sect">
     <span class="lp-title">Pulse</span>
-    <div class="lp-sw-row"><label class="sw"><input type="checkbox" id="t-pu" checked><span class="sw-tk"></span></label><span class="lp-sw-lbl">On/Off</span></div>
+    <div class="lp-sw-row"><label class="sw"><input type="checkbox" id="t-pu"><span class="sw-tk"></span></label><span class="lp-sw-lbl">On/Off</span></div>
   </div>
 </div>
 
@@ -452,12 +451,18 @@ function addParamToggle(id, paramKey) {
 }
 addParamToggle('sp', 'spinSpd');
 addParamToggle('sf', 'spinFrmSpd');
-addParamToggle('pu', 'pulseSpd');
 
-// spinFlt = boolean (distorcao SVG no arco giratorio)
-document.getElementById('t-flt').addEventListener('change', e => {
-  eb.setParams({ spinFlt: e.target.checked });
-});
+// ── Pulse toggle = controla estilo do noise animation ────────────────────────
+// Off (default) = BalintFerenczy one-way linear → borda viva, SEM ir/voltar
+// On            = hammadxcm oscillating spline  → borda pulsa ir/voltar
+(function() {
+  const el = document.getElementById('t-pu');
+  el.checked = !!eb.p.animNoise;
+  el.addEventListener('change', e => {
+    eb.setParams({ animNoise: e.target.checked });
+    syncSliders();
+  });
+})();
 
 // ── Slider definitions ────────────────────────────────────────────────────────
 const SLIDERS = [
@@ -696,17 +701,14 @@ function drawBgGlow(t) {
   cx.fillRect(CX - 540, CY - 440, 1080, 880);
   cx.restore();
 
-  // Tight border bloom — hammadxcm "background-glow" style
+  // Tight border bloom — glow uniforme ao redor de todo o frame
   cx.save();
-  cx.filter = 'blur(30px)';
-  cx.globalAlpha = 0.48 * p2;
-  const g2 = cx.createLinearGradient(PX, PY, PX + PW, PY + PH);
-  g2.addColorStop(0,   `hsla(${h},78%,58%,0.7)`);
-  g2.addColorStop(0.5, `hsla(${h},60%,30%,0.08)`);
-  g2.addColorStop(1,   `hsla(${h},78%,58%,0.7)`);
-  cx.fillStyle = g2;
-  rr(PX - 24, PY - 24, PW + 48, PH + 48, 18);
-  cx.fill();
+  cx.filter = 'blur(18px)';
+  cx.globalAlpha = 0.6 * p2;
+  cx.strokeStyle = `hsla(${h},82%,60%,0.75)`;
+  cx.lineWidth = 22;
+  rr(PX, PY, PW, PH, 14);
+  cx.stroke();
   cx.restore();
 }
 
@@ -837,7 +839,7 @@ function loop(ts) {
   drawPanelFill();
   drawCornerHighlights();
   drawContent(t);
-  eb.draw(cx, PX, PY, PW, PH, t, { outer: T.ou, aura: T.au, electric: T.el });
+  eb.draw(cx, PX, PY, PW, PH, t, { outer: T.ou, aura: T.au, electric: T.el, corners: T.cn });
 
   requestAnimationFrame(loop);
 }

@@ -102,6 +102,7 @@ class ElectricBorder {
     spinFrmHue:  null,   // hue do arco do frame (null = usa oh)
     spinFrmTail: 0.40,   // cauda do arco do frame (0..1 do perimetro)
     spinFlt:     true,   // true = arco eletrico com filtro SVG (distorcao), false = suave
+    animNoise:   false,  // true = noise do filtro SVG animado (ir/voltar), false = estatico
   };
 
   /**
@@ -116,8 +117,16 @@ class ElectricBorder {
 
   /** Atualiza qualquer subconjunto dos parametros e re-aplica o filtro. */
   setParams(params) {
+    const prevAnim = this.p.animNoise;
     Object.assign(this.p, params);
-    this._applyFilter();
+    if ('animNoise' in params && this.p.animNoise !== prevAnim) {
+      // Recria SVG quando o toggle animNoise muda (inclui/exclui <animate>)
+      const old = document.getElementById(this._id + '-svg');
+      if (old) old.remove();
+      this._injectSVG();
+    } else {
+      this._applyFilter();
+    }
   }
 
   /**
@@ -133,10 +142,11 @@ class ElectricBorder {
    */
   draw(ctx, px, py, pw, ph, t, layers = {}) {
     const p = this.p;
-    const showOuter = layers.outer    !== false;
-    const showAura  = layers.aura     !== false;
-    const showElec  = layers.electric !== false;
-    if (!showOuter && !showAura && !showElec) return;
+    const showOuter   = layers.outer    !== false;
+    const showAura    = layers.aura     !== false;
+    const showElec    = layers.electric !== false;
+    const showCorners = layers.corners  !== false;
+    if (!showOuter && !showAura && !showElec && !showCorners) return;
 
     const h  = p.hue;
     const oh = (p.outerHue != null) ? p.outerHue : h;
@@ -144,7 +154,7 @@ class ElectricBorder {
 
     const ip = p.innerInset, r = p.innerR;
     const ix = px+ip, iy = py+ip, iw = pw-ip*2, ih = ph-ip*2;
-    const pulse = p.pulseSpd === 0 ? 1.0 : (0.72 + 0.28 * Math.sin(t * p.pulseSpd));
+    const pulse = p.pulseSpd === 0 ? 1.0 : (0.38 + 0.62 * (0.5 + 0.5 * Math.sin(t * p.pulseSpd)));
     const flare = Math.sin(t * 7.1) * Math.sin(t * 11.9) > 0.85 ? 1.55 : 1.0;
     const I = pulse * flare;
 
@@ -198,52 +208,53 @@ class ElectricBorder {
 
     // ── Camadas 2-4: borda eletrica com filtro SVG ────────────────────────────
     if (showElec) {
-      ctx.filter     = `url(#${this._id})`;
-      ctx.shadowBlur = 0;
+      ctx.filter      = `url(#${this._id})`;
+      ctx.globalAlpha = I;   // pulse aplicado apos filtro (post-filter compositing)
+      ctx.shadowBlur  = 0;
 
       // Corona (semi-transparente, cobre a area de glow)
-      ctx.strokeStyle = `hsla(${h},62%,63%,${(0.14*I).toFixed(3)})`;
+      ctx.strokeStyle = `hsla(${h},62%,63%,0.14)`;
       ctx.lineWidth   = p.coronaW;
       this._rRect(ctx, ix, iy, iw, ih, r); ctx.stroke();
 
       // Arco principal
-      ctx.strokeStyle = `hsla(${h},72%,72%,${(0.80*I).toFixed(3)})`;
+      ctx.strokeStyle = `hsla(${h},72%,72%,0.80)`;
       ctx.lineWidth   = p.arcW;
       this._rRect(ctx, ix, iy, iw, ih, r); ctx.stroke();
 
       // Nucleo branco brilhante
-      ctx.strokeStyle = `hsla(${h+15},30%,96%,${(0.90*I).toFixed(3)})`;
+      ctx.strokeStyle = `hsla(${h+15},30%,96%,0.90)`;
       ctx.lineWidth   = p.coreW;
       this._rRect(ctx, ix, iy, iw, ih, r); ctx.stroke();
-    }
 
-    // ── Arco giratorio eletrico (spinHue + spinTail; spinFlt = distorcao SVG) ──────
-    if (showElec && p.spinSpd !== 0 && ctx.createConicGradient) {
-      ctx.filter = p.spinFlt ? `url(#${this._id})` : 'none';
-      const cx  = px + pw * 0.5, cy = py + ph * 0.5;
-      const cg  = ctx.createConicGradient(t * p.spinSpd, cx, cy);
-      const sh  = (p.spinHue != null) ? p.spinHue : p.hue;
-      const sh2 = (sh + 52) % 360;
-      const tl  = Math.max(0.05, Math.min(0.95, p.spinTail));
-      cg.addColorStop(0,                 `rgba(255,255,255,0)`);
-      cg.addColorStop(tl * 0.10,         `hsla(${sh2},100%,80%,0.50)`);
-      cg.addColorStop(tl * 0.24,         `rgba(255,255,255,0.95)`);
-      cg.addColorStop(tl * 0.44,         `hsla(${sh},100%,72%,0.90)`);
-      cg.addColorStop(tl * 0.78,         `hsla(${sh},90%,55%,0.20)`);
-      cg.addColorStop(Math.min(tl,0.98), `rgba(255,255,255,0)`);
-      cg.addColorStop(1,                 `rgba(255,255,255,0)`);
-      ctx.strokeStyle = cg;
-      ctx.lineWidth   = p.arcW + p.coronaW + 0.5;
-      ctx.shadowColor = `rgba(255,255,255,0.85)`;
-      ctx.shadowBlur  = p.auraBlur * 0.7;
-      this._rRect(ctx, ix, iy, iw, ih, r);
-      ctx.stroke();
-      ctx.shadowBlur  = 0;
-      ctx.filter      = 'none';
+      // ── Arco giratorio eletrico (spinHue + spinTail) ──────────────────────────
+      if (p.spinSpd !== 0 && ctx.createConicGradient) {
+        ctx.filter = `url(#${this._id})`;
+        const cxS  = px + pw * 0.5, cyS = py + ph * 0.5;
+        const cg   = ctx.createConicGradient(t * p.spinSpd, cxS, cyS);
+        const sh   = (p.spinHue != null) ? p.spinHue : p.hue;
+        const sh2  = (sh + 52) % 360;
+        const tl   = Math.max(0.05, Math.min(0.95, p.spinTail));
+        cg.addColorStop(0,                 `rgba(255,255,255,0)`);
+        cg.addColorStop(tl * 0.10,         `hsla(${sh2},100%,80%,0.50)`);
+        cg.addColorStop(tl * 0.24,         `rgba(255,255,255,0.95)`);
+        cg.addColorStop(tl * 0.44,         `hsla(${sh},100%,72%,0.90)`);
+        cg.addColorStop(tl * 0.78,         `hsla(${sh},90%,55%,0.20)`);
+        cg.addColorStop(Math.min(tl,0.98), `rgba(255,255,255,0)`);
+        cg.addColorStop(1,                 `rgba(255,255,255,0)`);
+        ctx.strokeStyle = cg;
+        ctx.lineWidth   = p.arcW + p.coronaW + 0.5;
+        ctx.shadowColor = `rgba(255,255,255,0.85)`;
+        ctx.shadowBlur  = p.auraBlur * 0.7;
+        this._rRect(ctx, ix, iy, iw, ih, r);
+        ctx.stroke();
+        ctx.shadowBlur  = 0;
+      }
+      ctx.globalAlpha = 1;
     }
 
     // ── Corner glint: reflexo diagonal nos cantos (inspirado no CodePen KwdoyEN) ──
-    {
+    if (showCorners) {
       const mx = pw * 0.04, my = ph * 0.04;
       const grad = ctx.createLinearGradient(px-mx, py-my, px+pw+mx, py+ph+my);
       grad.addColorStop(0.00, 'rgba(255,255,255,0.22)');
@@ -290,24 +301,25 @@ class ElectricBorder {
     svg.id = id + '-svg';
     svg.setAttribute('style', 'position:absolute;width:0;height:0;overflow:hidden');
     svg.setAttribute('aria-hidden', 'true');
+    const an = this.p.animNoise;
+    // Pulse OFF (an=false): BalintFerenczy one-way linear — border animates, sem ir/voltar
+    // Pulse ON  (an=true ): hammadxcm oscillating spline  — border pulsa ir/voltar
+    const mode = an ? 'spline' : 'linear';
+    const ks   = an ? ` keySplines="0.4 0 0.6 1;0.4 0 0.6 1"` : '';
+    const ay1 = `<animate attributeName="dy" values="${an?'700;0;700':'700;0'}" dur="${p.durDy}s" repeatCount="indefinite" calcMode="${mode}"${ks}/>`;
+    const ay2 = `<animate attributeName="dy" values="${an?'0;-700;0':'0;-700'}" dur="${p.durDy}s" repeatCount="indefinite" calcMode="${mode}"${ks}/>`;
+    const ax3 = `<animate attributeName="dx" values="${an?'490;0;490':'490;0'}" dur="${p.durDx}s" repeatCount="indefinite" calcMode="${mode}"${ks}/>`;
+    const ax4 = `<animate attributeName="dx" values="${an?'0;-490;0':'0;-490'}" dur="${p.durDx}s" repeatCount="indefinite" calcMode="${mode}"${ks}/>`;
     svg.innerHTML = `<defs>
       <filter id="${id}" colorInterpolationFilters="sRGB" x="-25%" y="-25%" width="150%" height="150%">
         <feTurbulence type="turbulence" baseFrequency="${p.freq}" numOctaves="${p.octaves}" result="n1" seed="1"/>
-        <feOffset in="n1" dx="0" dy="0" result="o1">
-          <animate attributeName="dy" values="700;0;700" dur="${p.durDy}s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1;0.4 0 0.6 1"/>
-        </feOffset>
+        <feOffset in="n1" dx="0" dy="0" result="o1">${ay1}</feOffset>
         <feTurbulence type="turbulence" baseFrequency="${p.freq}" numOctaves="${p.octaves}" result="n2" seed="1"/>
-        <feOffset in="n2" dx="0" dy="0" result="o2">
-          <animate attributeName="dy" values="0;-700;0" dur="${p.durDy}s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1;0.4 0 0.6 1"/>
-        </feOffset>
+        <feOffset in="n2" dx="0" dy="0" result="o2">${ay2}</feOffset>
         <feTurbulence type="turbulence" baseFrequency="${p.freq}" numOctaves="${p.octaves}" result="n3" seed="2"/>
-        <feOffset in="n3" dx="0" dy="0" result="o3">
-          <animate attributeName="dx" values="490;0;490" dur="${p.durDx}s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1;0.4 0 0.6 1"/>
-        </feOffset>
+        <feOffset in="n3" dx="0" dy="0" result="o3">${ax3}</feOffset>
         <feTurbulence type="turbulence" baseFrequency="${p.freq}" numOctaves="${p.octaves}" result="n4" seed="2"/>
-        <feOffset in="n4" dx="0" dy="0" result="o4">
-          <animate attributeName="dx" values="0;-490;0" dur="${p.durDx}s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.6 1;0.4 0 0.6 1"/>
-        </feOffset>
+        <feOffset in="n4" dx="0" dy="0" result="o4">${ax4}</feOffset>
         <feComposite in="o1" in2="o2" result="p1"/>
         <feComposite in="o3" in2="o4" result="p2"/>
         <feBlend in="p1" in2="p2" mode="color-dodge" result="noise"/>
