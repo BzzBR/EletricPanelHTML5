@@ -18,7 +18,9 @@ Open `index.html` directly in a browser.
 The `ElectricBorder` library was developed by combining techniques from two open-source references:
 
 ### SVG Filter + Canvas 2D — Bálint Ferenczy
-**CodePen:** https://codepen.io/BalintFerenczy/pen/KwdoyEN
+**CodePen:** https://codepen.io/BalintFerenczy/pen/KwdoyEN  
+**GitHub:** https://github.com/BalintFerenczy *(perfil público, sem repositórios — código disponível apenas no CodePen)*  
+**X / Twitter:** https://x.com/BalintFerenczy
 
 - SVG filter pipeline: `feTurbulence` → `feOffset` → `feComposite` → `feBlend(color-dodge)` → `feDisplacementMap`
 - Applied via `ctx.filter = "url(#id)"` on Canvas 2D strokes
