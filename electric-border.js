@@ -277,6 +277,19 @@ class ElectricBorder {
     ctx.restore();
   }
 
+  /** Preenche o fundo do painel com glow colorido. Chamado antes de draw(). */
+  drawBg(ctx, px, py, pw, ph, r, fill = 'rgba(2,8,22,0.97)') {
+    const h  = (this.p.outerHue != null) ? this.p.outerHue : this.p.hue;
+    const br = (r !== undefined) ? r : this.p.outerR;
+    ctx.save();
+    ctx.shadowColor = `hsla(${h}, 72%, 52%, 0.70)`;
+    ctx.shadowBlur  = 40;
+    ctx.fillStyle   = fill;
+    this._rRect(ctx, px, py, pw, ph, br);
+    ctx.fill();
+    ctx.restore();
+  }
+
   /** Remove o SVG injetado do documento. */
   destroy() {
     const el = document.getElementById(this._id + '-svg');
