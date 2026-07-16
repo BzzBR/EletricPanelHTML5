@@ -317,6 +317,52 @@ class ElectricBorder {
 
   // ── Private ──────────────────────────────────────────────────────────────────
 
+  /** Precalcula strings de cor estaticas. Chamado no construtor e quando hue muda. */
+  _updateColorCache() {
+    const p  = this.p;
+    const h  = p.hue;
+    const oh = (p.outerHue != null) ? p.outerHue : h;
+    const c  = this._colorCache;
+    c.outerStroke    = `hsla(${oh},55%,60%,0.45)`;
+    c.outerShadow    = `hsla(${oh},60%,55%,1)`;
+    c.auraShadow     = `hsla(${h},65%,60%,1)`;
+    c.auraStrokeBase = `hsla(${h},62%,60%,`;   // alpha dinamico appended no draw
+    c.corona         = `hsla(${h},62%,63%,0.14)`;
+    c.arc            = `hsla(${h},72%,72%,0.80)`;
+    c.core           = `hsla(${(h + 15) % 360},30%,96%,0.90)`;
+    c.bgShadow       = `hsla(${oh}, 72%, 52%, 0.70)`;
+  }
+
+  /**
+   * Retorna um Path2D de rounded-rect. Util para cachear paths fora da classe.
+   * @param {number} x @param {number} y @param {number} w @param {number} h @param {number} r
+   * @returns {Path2D}
+   */
+  static makePath(x, y, w, h, r) {
+    const path = new Path2D();
+    path.moveTo(x+r, y);
+    path.lineTo(x+w-r, y); path.arcTo(x+w, y,   x+w, y+r,   r);
+    path.lineTo(x+w, y+h-r); path.arcTo(x+w, y+h, x+w-r, y+h, r);
+    path.lineTo(x+r, y+h); path.arcTo(x,   y+h, x,   y+h-r, r);
+    path.lineTo(x, y+r);   path.arcTo(x,   y,   x+r, y,     r);
+    path.closePath();
+    return path;
+  }
+
+  /** Constroi e armazena os Path2D das bordas. Invalidado ao mudar dimensoes. */
+  _buildPaths(px, py, pw, ph) {
+    const p  = this.p;
+    const ip = p.innerInset, r = p.innerR;
+    const ix = px+ip, iy = py+ip, iw = pw-ip*2, ih = ph-ip*2;
+    const mx = pw * 0.04, my = ph * 0.04;
+    this._pathCache = {
+      _key:   `${px},${py},${pw},${ph}`,
+      outer:  ElectricBorder.makePath(px+0.5, py+0.5, pw-1,    ph-1,    p.outerR),
+      inner:  ElectricBorder.makePath(ix,     iy,     iw,      ih,      r),
+      corner: ElectricBorder.makePath(px-mx,  py-my,  pw+mx*2, ph+my*2, p.outerR+3),
+    };
+  }
+
   _rRect(ctx, x, y, w, h, r) {
     ctx.beginPath();
     ctx.moveTo(x+r, y);
