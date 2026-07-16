@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NeonTower — Panel Test</title>
+  <title>Electric Panel — Demo</title>
   <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Orbitron:wght@700;900&family=Rajdhani:wght@400;500&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -385,12 +385,26 @@ const C  = document.getElementById('c');
 const cx = C.getContext('2d');
 const PW = 480, PH = 400;
 let W, H, CX, CY, PX, PY;
+let _gridCache = null;
+let panelPath, cornerHighPath, btnPath1, btnPath2;
+
+function _buildPanelPaths() {
+  const bw = 168, bh = 44, gap = 20;
+  const b1x = CX - gap / 2 - bw, bly = PY + 228;
+  const b2x = CX + gap / 2;
+  panelPath      = ElectricBorder.makePath(PX,      PY,      PW,      PH,      14);
+  cornerHighPath = ElectricBorder.makePath(PX - 14, PY - 14, PW + 28, PH + 28, 16);
+  btnPath1       = ElectricBorder.makePath(b1x, bly, bw, bh, 9);
+  btnPath2       = ElectricBorder.makePath(b2x, bly, bw, bh, 9);
+}
 
 function resize() {
   C.width = W = window.innerWidth;
   C.height = H = window.innerHeight;
   CX = W / 2; CY = H / 2;
   PX = Math.round(CX - PW / 2); PY = Math.round(CY - PH / 2);
+  _gridCache = null;
+  _buildPanelPaths();
 }
 resize();
 window.addEventListener('resize', resize);
@@ -660,26 +674,20 @@ document.addEventListener('click', e => {
 
 updateCopyBox();
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function rr(x, y, w, h, r) {
-  cx.beginPath();
-  cx.moveTo(x+r, y);
-  cx.lineTo(x+w-r, y); cx.arcTo(x+w, y, x+w, y+r, r);
-  cx.lineTo(x+w, y+h-r); cx.arcTo(x+w, y+h, x+w-r, y+h, r);
-  cx.lineTo(x+r, y+h); cx.arcTo(x, y+h, x, y+h-r, r);
-  cx.lineTo(x, y+r); cx.arcTo(x, y, x+r, y, r);
-  cx.closePath();
-}
-
-// ── Background Grid ───────────────────────────────────────────────────────────
+// ── Background Grid (renderizado uma vez em offscreen canvas) ────────────────
 function drawGrid() {
-  cx.save();
-  cx.strokeStyle = 'rgba(80, 25, 160, 0.055)';
-  cx.lineWidth = 1;
-  const sp = 44;
-  for (let x = sp / 2; x < W; x += sp) { cx.beginPath(); cx.moveTo(x, 0); cx.lineTo(x, H); cx.stroke(); }
-  for (let y = sp / 2; y < H; y += sp) { cx.beginPath(); cx.moveTo(0, y); cx.lineTo(W, y); cx.stroke(); }
-  cx.restore();
+  if (!_gridCache) {
+    const oc = document.createElement('canvas');
+    oc.width = W; oc.height = H;
+    const gc = oc.getContext('2d');
+    gc.strokeStyle = 'rgba(80, 25, 160, 0.055)';
+    gc.lineWidth = 1;
+    const sp = 44;
+    for (let x = sp / 2; x < W; x += sp) { gc.beginPath(); gc.moveTo(x, 0); gc.lineTo(x, H); gc.stroke(); }
+    for (let y = sp / 2; y < H; y += sp) { gc.beginPath(); gc.moveTo(0, y); gc.lineTo(W, y); gc.stroke(); }
+    _gridCache = oc;
+  }
+  cx.drawImage(_gridCache, 0, 0);
 }
 
 // ── BG Glow ───────────────────────────────────────────────────────────────────
@@ -707,8 +715,7 @@ function drawBgGlow(t) {
   cx.globalAlpha = 0.6 * p2;
   cx.strokeStyle = `hsla(${h},82%,60%,0.75)`;
   cx.lineWidth = 22;
-  rr(PX, PY, PW, PH, 14);
-  cx.stroke();
+  cx.stroke(panelPath);
   cx.restore();
 }
 
@@ -725,8 +732,7 @@ function drawCornerHighlights() {
   g.addColorStop(0.76, 'rgba(255,255,255,0)');
   g.addColorStop(1,    'rgba(255,255,255,0.7)');
   cx.fillStyle = g;
-  rr(PX - 14, PY - 14, PW + 28, PH + 28, 16);
-  cx.fill();
+  cx.fill(cornerHighPath);
   cx.restore();
 }
 
@@ -737,8 +743,7 @@ function drawPanelFill() {
   g.addColorStop(0, 'rgba(10,4,24,0.97)');
   g.addColorStop(1, 'rgba(5,2,14,0.97)');
   cx.fillStyle = g;
-  rr(PX, PY, PW, PH, 14);
-  cx.fill();
+  cx.fill(panelPath);
   cx.restore();
 }
 
@@ -798,16 +803,16 @@ function drawContent(t) {
   bg1.addColorStop(0, `hsla(${h},65%,44%,0.5)`);
   bg1.addColorStop(1, `hsla(${h},60%,32%,0.38)`);
   cx.fillStyle = bg1;
-  rr(b1x, bly, bw, bh, 9); cx.fill();
+  cx.fill(btnPath1);
   cx.strokeStyle = `hsla(${h},70%,62%,0.7)`;
   cx.lineWidth = 1;
-  rr(b1x, bly, bw, bh, 9); cx.stroke();
+  cx.stroke(btnPath1);
 
   // Menu (secondary)
   cx.fillStyle = 'rgba(28,12,52,0.58)';
-  rr(b2x, bly, bw, bh, 9); cx.fill();
+  cx.fill(btnPath2);
   cx.strokeStyle = `hsla(${h},55%,50%,0.22)`;
-  rr(b2x, bly, bw, bh, 9); cx.stroke();
+  cx.stroke(btnPath2);
 
   // Button labels
   cx.textBaseline = 'middle';
