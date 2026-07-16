@@ -2,7 +2,8 @@
 
 Canvas 2D electric border effect — vanilla JS, zero dependencies, no build step.
 
-**Demo:** open `index.html` directly in a browser.
+**Demo:** https://bzzbr.github.io/EletricPanelHTML5/  
+**Source:** open `index.html` directly in a browser.
 
 ---
 
