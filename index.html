@@ -312,6 +312,36 @@
       text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap;
     }
     .swatch-row { display: grid; grid-template-columns: repeat(4, 20px); gap: 4px; }
+
+    /* ── Responsive Mobile (< 768px) ────────────────────────────────────── */
+    @media (max-width: 768px) {
+      #left-panel {
+        left: 4px; right: 4px; width: auto; max-width: 340px;
+      }
+      #ctrl-bar {
+        bottom: 8px; left: 4px; right: 4px;
+        gap: 2px; padding: 8px 12px; width: auto;
+      }
+      .sect-lbl { font-size: 7px; margin-right: 2px; }
+      .preset-btn { font-size: 8px; padding: 5px 10px; }
+      .ti-lbl { font-size: 7px; }
+      #adv-panel {
+        width: 90vw; max-width: 320px;
+        bottom: 70px; padding: 10px 12px 8px;
+      }
+      .adv-title { font-size: 8px; }
+      .copy-btn { font-size: 8px; padding: 4px 8px; }
+      .sliders-grid { grid-template-columns: 1fr; gap: 4px 12px; }
+      .sl-lbl { font-size: 7px; width: 50px; }
+      .sl-val { font-size: 7px; width: 30px; }
+      #copy-box { font-size: 9px; height: 36px; padding: 4px 6px; }
+    }
+
+    /* ── Responsive Tablet (768px - 1024px) ────────────────────────────── */
+    @media (768px <= width <= 1024px) {
+      #left-panel { width: 340px; }
+      #adv-panel { width: 520px; }
+    }
   </style>
 </head>
 <body>
@@ -457,11 +487,12 @@ const COLORS = [
 // ── ElectricBorder ────────────────────────────────────────────────────────────
 const eb = new ElectricBorder({ ...PRESETS.padrao, hue: 270, spinSpd: 1.4, spinFrmSpd: 1.0, spinFrmHue: null, spinFrmTail: 0.40 });
 
-// ── Layer toggles ─────────────────────────────────────────────────────────────
+// ── Layer toggles ────────────────────────────────────────────────────────
 const T = { bg: true, cn: true, ou: true, au: true, el: true };
-['bg', 'cn', 'ou', 'au', 'el'].forEach(k =>
-  document.getElementById('t-' + k).addEventListener('change', e => T[k] = e.target.checked)
-);
+document.getElementById('left-panel').addEventListener('change', e => {
+  const k = e.target.id.replace('t-', '');
+  if (k in T) T[k] = e.target.checked;
+});
 
 // ── ON/OFF toggles para Spin ⚡, Spin Frame, Pulse ────────────────────────────────
 function addParamToggle(id, paramKey) {
@@ -512,11 +543,12 @@ const SLIDERS = [
   { key: 'spinFrmTail',label: 'FrmSpin Tail',min: 0.05,max: 0.95, step: 0.05, fmt: v => (+v).toFixed(2) },
 ];
 
-// ── Copy / paste ──────────────────────────────────────────────────────────────
-function updateCopyBox() {
+// ── Copy / paste (debounced) ──────────────────────────────────────────────
+let _copyBoxDirty = false, _copyBoxTimer = null;
+function updateCopyBox(now = false) {
   const p = eb.p;
   const oh = p.outerHue != null ? p.outerHue : p.hue;
-  document.getElementById('copy-box').value =
+  const text =
     `new ElectricBorder({\n` +
     `  hue: ${p.hue}, outerHue: ${oh}, freq: ${(+p.freq).toFixed(3)}, octaves: ${p.octaves}, scale: ${p.scale},\n` +
     `  durDy: ${p.durDy}, durDx: ${p.durDx}, auraBlur: ${p.auraBlur},\n` +
@@ -524,7 +556,21 @@ function updateCopyBox() {
     `  spinSpd: ${(+p.spinSpd).toFixed(1)}, spinHue: ${p.spinHue != null ? p.spinHue : 'null'}, spinTail: ${(+p.spinTail).toFixed(2)},\n` +
     `  spinFrmSpd: ${(+p.spinFrmSpd).toFixed(1)}, spinFrmHue: ${p.spinFrmHue != null ? p.spinFrmHue : 'null'}, spinFrmTail: ${(+p.spinFrmTail).toFixed(2)},\n` +
     `  spinFlt: ${p.spinFlt !== false},\n` +
-    `})`;
+    `}`;
+  if (now) {
+    document.getElementById('copy-box').value = text;
+    _copyBoxDirty = false;
+  } else {
+    _copyBoxDirty = true;
+    clearTimeout(_copyBoxTimer);
+    _copyBoxTimer = setTimeout(() => {
+      document.getElementById('copy-box').value = text;
+      _copyBoxDirty = false;
+    }, 200);
+  }
+}
+function flushCopyBox() {
+  if (_copyBoxDirty) updateCopyBox(true);
 }
 function copyParams() {
   const btn = document.getElementById('copy-btn');
@@ -545,7 +591,7 @@ function copySnippet() {
   });
 }
 
-// ── Build sliders ─────────────────────────────────────────────────────────────
+// ── Build sliders with delegation ─────────────────────────────────────────────
 const sliderEls = {};
 const grid = document.getElementById('sliders-grid');
 SLIDERS.forEach(def => {
@@ -553,23 +599,30 @@ SLIDERS.forEach(def => {
   const lbl = document.createElement('span'); lbl.className = 'sl-lbl'; lbl.textContent = def.label;
   const inp = document.createElement('input');
   inp.type = 'range'; inp.min = def.min; inp.max = def.max; inp.step = def.step;
+  inp.dataset.key = def.key;
   inp.value = (def.key === 'outerHue' || def.key === 'spinHue' || def.key === 'spinFrmHue')
     ? (eb.p[def.key] != null ? eb.p[def.key] : eb.p.hue)
     : eb.p[def.key];
   const val = document.createElement('span'); val.className = 'sl-val';
   val.textContent = def.fmt(+inp.value);
-  inp.addEventListener('input', () => {
-    const v = +inp.value;
-    val.textContent = def.fmt(v);
-    eb.setParams({ [def.key]: v });
-    updateCopyBox();
-    if (def.key === 'hue')
-      document.querySelectorAll('.color-btn').forEach((b, i) =>
-        b.classList.toggle('active', COLORS[i].hue === v));
-  });
   sliderEls[def.key] = { input: inp, valEl: val, fmt: def.fmt };
   row.appendChild(lbl); row.appendChild(inp); row.appendChild(val);
   grid.appendChild(row);
+});
+
+// Slider delegation listener
+grid.addEventListener('input', e => {
+  const inp = e.target;
+  if (inp.type !== 'range') return;
+  const def = SLIDERS.find(d => d.key === inp.dataset.key);
+  if (!def) return;
+  const v = +inp.value;
+  sliderEls[def.key].valEl.textContent = def.fmt(v);
+  eb.setParams({ [def.key]: v });
+  updateCopyBox();
+  if (def.key === 'hue')
+    document.querySelectorAll('.color-btn').forEach((b, i) =>
+      b.classList.toggle('active', COLORS[i].hue === v));
 });
 
 function syncSliders() {
@@ -593,77 +646,49 @@ function applyPreset(name) {
 }
 
 // ── Color logic ───────────────────────────────────────────────────────────────
+// Color functions (maintained for backward compatibility if needed)
 function applyColor(idx) {
+  const container = document.getElementById('color-group');
+  container.querySelectorAll('.color-btn').forEach((b, i) =>
+    b.classList.toggle('active', i === idx));
   eb.setParams({ hue: COLORS[idx].hue });
-  document.querySelectorAll('.color-btn').forEach((b, i) =>
-    b.classList.toggle('active', i === idx)
-  );
   syncSliders();
 }
 
 function applyOuterColor(idx) {
+  const container = document.getElementById('outer-color-group');
+  container.querySelectorAll('.outer-color-btn').forEach((b, i) =>
+    b.classList.toggle('active', i === idx));
   eb.setParams({ outerHue: COLORS[idx].hue });
-  document.querySelectorAll('.outer-color-btn').forEach((b, i) =>
-    b.classList.toggle('active', i === idx)
-  );
   syncSliders();
 }
 
-// Build color swatches dynamically
-const cg = document.getElementById('color-group');
-COLORS.forEach((col, i) => {
-  const btn = document.createElement('button');
-  btn.className = 'color-btn' + (i === 0 ? ' active' : '');
-  btn.title = col.name;
-  btn.style.cssText = `background:${col.swatch};--sw-c:${col.swatch}`;
-  btn.addEventListener('click', () => applyColor(i));
-  cg.appendChild(btn);
-});
-
-// Build outer border (frame) color swatches
-const ocg = document.getElementById('outer-color-group');
-COLORS.forEach((col, i) => {
-  const btn = document.createElement('button');
-  btn.className = 'outer-color-btn color-btn' + (i === 0 ? ' active' : '');
-  btn.title = col.name;
-  btn.style.cssText = `background:${col.swatch};--sw-c:${col.swatch}`;
-  btn.addEventListener('click', () => applyOuterColor(i));
-  ocg.appendChild(btn);
-});
-
-// Build spin ⚡ color swatches
-function applySpinColor(idx) {
-  eb.setParams({ spinHue: COLORS[idx].hue });
-  document.querySelectorAll('.spin-color-btn').forEach((b, i) =>
-    b.classList.toggle('active', i === idx));
-  syncSliders();
+// Factory function for color appliers (DRY)
+function createColorGroup(containerSelector, btnClass, paramKey, initIdx = 0) {
+  const container = document.getElementById(containerSelector);
+  COLORS.forEach((col, i) => {
+    const btn = document.createElement('button');
+    btn.className = `${btnClass} color-btn` + (i === initIdx ? ' active' : '');
+    btn.dataset.colorIdx = i;
+    btn.title = col.name;
+    btn.style.cssText = `background:${col.swatch};--sw-c:${col.swatch}`;
+    container.appendChild(btn);
+  });
+  container.addEventListener('click', e => {
+    const idx = +e.target.dataset.colorIdx;
+    if (isNaN(idx)) return;
+    eb.setParams({ [paramKey]: COLORS[idx].hue });
+    container.querySelectorAll('.color-btn').forEach((b, i) =>
+      b.classList.toggle('active', i === idx));
+    syncSliders();
+  });
 }
-const scg = document.getElementById('spin-color-group');
-COLORS.forEach((col, i) => {
-  const btn = document.createElement('button');
-  btn.className = 'spin-color-btn color-btn';
-  btn.title = col.name;
-  btn.style.cssText = `background:${col.swatch};--sw-c:${col.swatch}`;
-  btn.addEventListener('click', () => applySpinColor(i));
-  scg.appendChild(btn);
-});
 
-// Build spin frame color swatches
-function applySpinFrmColor(idx) {
-  eb.setParams({ spinFrmHue: COLORS[idx].hue });
-  document.querySelectorAll('.spin-frm-color-btn').forEach((b, i) =>
-    b.classList.toggle('active', i === idx));
-  syncSliders();
-}
-const sfcg = document.getElementById('spin-frm-color-group');
-COLORS.forEach((col, i) => {
-  const btn = document.createElement('button');
-  btn.className = 'spin-frm-color-btn color-btn';
-  btn.title = col.name;
-  btn.style.cssText = `background:${col.swatch};--sw-c:${col.swatch}`;
-  btn.addEventListener('click', () => applySpinFrmColor(i));
-  sfcg.appendChild(btn);
-});
+// Build color swatches
+createColorGroup('color-group', 'color-btn', 'hue', 0);
+createColorGroup('outer-color-group', 'outer-color-btn', 'outerHue', 0);
+createColorGroup('spin-color-group', 'spin-color-btn', 'spinHue', -1);
+createColorGroup('spin-frm-color-group', 'spin-frm-color-btn', 'spinFrmHue', -1);
 
 // ── Advanced panel toggle ─────────────────────────────────────────────────────
 let advOpen = false;
